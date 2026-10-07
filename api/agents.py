@@ -43,7 +43,7 @@ ferramenta_busca = FaissSearchTool()
 # ============== Agents definition
 
 gemini_llm = LLM(
-    model="gemini/gemini-1.5-flash", # fast, light and free
+    model=os.getenv("LLM_MODEL_NAME", "gemini/gemini-1.5-flash-latest"), # fast, light and free
     temperature=0.1 
 
     # Temperature is the name of a term used Softmax in token scores.

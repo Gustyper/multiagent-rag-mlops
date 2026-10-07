@@ -1,4 +1,4 @@
-crewai
+crewai[google-genai]
 langchain-community
 langchain-huggingface
 faiss-cpu
