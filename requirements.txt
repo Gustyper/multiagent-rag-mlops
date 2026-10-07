@@ -1,0 +1,7 @@
+crewai
+langchain-community
+langchain-huggingface
+faiss-cpu
+sentence-transformers
+python-dotenv
+google-generativeai
