@@ -6,6 +6,10 @@ from pydantic import BaseModel, Field # Data validation in Python type hints
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 
+# MLOps
+import time
+import mlflow
+
 load_dotenv() # loads environment variables (gemini api key)
 
 # ============== Tools definition
@@ -68,7 +72,7 @@ agente_pesquisador = Agent(
 agente_revisor = Agent(
     role="Analista de Síntese",
     goal="Sintetizar dados brutos em respostas claras, estruturadas e sem alucinações.",
-    backstory="Você é um analista rigoroso. Recebe textos fragmentados do pesquisador e escreve uma resposta final em Markdown. NUNCA invente informações.",
+    backstory="Você é um auditor rigoroso. Você NUNCA utiliza conhecimento prévio, memória ou dados externos. Se o contexto recebido da busca for vazio ou insuficiente para responder à pergunta, você DEVE retornar a string exata: 'A informação não consta na base de dados interna.' e encerrar.",
     llm=gemini_llm,
     verbose=True,
     allow_delegation=False
@@ -97,5 +101,21 @@ equipe = Crew(
 )
 
 if __name__ == "__main__":
-    resultado = equipe.kickoff()
-    print("\nRESPOSTA FINAL:\n", resultado.raw)
+    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+    mlflow.set_experiment("MultiAgent_RAG_System")
+
+    with mlflow.start_run() as run:
+        mlflow.log_param("modelo_llm", os.getenv("LLM_MODEL_NAME", "gemini-1.5-flash-latest"))
+        mlflow.log_param("temperatura", 0.1)
+        mlflow.log_param("pergunta_usuario", pergunta_usuario)
+        
+        start_time = time.time()
+        resultado = equipe.kickoff()
+        latencia = time.time() - start_time
+        
+        mlflow.log_metric("latencia_segundos", latencia)
+        mlflow.log_text(resultado.raw, "resposta_final.txt")
+        
+        print("Final Answer:")
+        print(resultado.raw)
+        print(f"\nRun ID do MLflow: {run.info.run_id}")
