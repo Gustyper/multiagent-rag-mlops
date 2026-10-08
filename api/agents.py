@@ -79,33 +79,36 @@ agente_revisor = Agent(
 )
 
 # ================== Task definition
+def exect_multiagent_search(pergunta_usuario: str) -> str:
+    """
+    Receives a question (string) and controls de agents. 
+    Add logs to MLFlow and returns answer.
+    """
 
-pergunta_usuario = "O que diz sobre os direitos sociais?"
+    tarefa_pesquisa = Task(
+        description=f"O usuário perguntou: '{pergunta_usuario}'. Extraia o contexto necessário dos documentos.",
+        expected_output="Um compilado dos trechos mais relevantes.",
+        agent=agente_pesquisador
+    )
 
-tarefa_pesquisa = Task(
-    description=f"O usuário perguntou: '{pergunta_usuario}'. Extraia o contexto necessário dos documentos.",
-    expected_output="Um compilado dos trechos mais relevantes.",
-    agent=agente_pesquisador
-)
+    tarefa_sintese = Task(
+        description="Analise o texto recuperado e responda à pergunta original do usuário.",
+        expected_output="Resposta em Markdown. Se não achar, diga explicitamente.",
+        agent=agente_revisor
+    )
 
-tarefa_sintese = Task(
-    description="Analise o texto recuperado e responda à pergunta original do usuário.",
-    expected_output="Resposta em Markdown. Se não achar, diga explicitamente.",
-    agent=agente_revisor
-)
+    equipe = Crew(
+        agents=[agente_pesquisador, agente_revisor],
+        tasks=[tarefa_pesquisa, tarefa_sintese],
+        process=Process.sequential
+    )
 
-equipe = Crew(
-    agents=[agente_pesquisador, agente_revisor],
-    tasks=[tarefa_pesquisa, tarefa_sintese],
-    process=Process.sequential
-)
-
-if __name__ == "__main__":
+    # MLflow Tracking
     mlflow.set_tracking_uri("http://127.0.0.1:5000")
-    mlflow.set_experiment("MultiAgent_RAG_System")
+    mlflow.set_experiment("Sistema_Multiagente_RAG")
 
     with mlflow.start_run() as run:
-        mlflow.log_param("modelo_llm", os.getenv("LLM_MODEL_NAME", "gemini-1.5-flash-latest"))
+        mlflow.log_param("modelo_llm", os.getenv("LLM_MODEL_NAME", "gemini/gemini-1.5-flash-latest"))
         mlflow.log_param("temperatura", 0.1)
         mlflow.log_param("pergunta_usuario", pergunta_usuario)
         
@@ -116,6 +119,4 @@ if __name__ == "__main__":
         mlflow.log_metric("latencia_segundos", latencia)
         mlflow.log_text(resultado.raw, "resposta_final.txt")
         
-        print("Final Answer:")
-        print(resultado.raw)
-        print(f"\nRun ID do MLflow: {run.info.run_id}")
+        return resultado.raw

@@ -4,3 +4,4 @@ __pycache__/
 # I'll keep data because it is small
 # data/ 
 *.db
+mlartifacts/
